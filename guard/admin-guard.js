@@ -1,11 +1,13 @@
 "use strict";
-// import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
-// import { Context, NextFunction } from "grammy";
-// type MyContext = Context & ConversationFlavor;
-// type MyConversation = Conversation<MyContext>;
-// import {env} from "../config/env.config"
-// export function adminGuard(ctx: MyContext, next: NextFunction) {
-// 	if (env.ADMIN == ctx.from?.id) {
-// 		next();
-// 	}
-// }
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.adminGuard = void 0;
+function adminGuard(ctx, next) {
+    var _a;
+    if (1754846162 == ((_a = ctx.from) === null || _a === void 0 ? void 0 : _a.id)) {
+        next();
+    }
+    else {
+        ctx.reply(`Siz admin emassiz ❌`);
+    }
+}
+exports.adminGuard = adminGuard;

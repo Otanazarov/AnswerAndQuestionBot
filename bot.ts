@@ -5,6 +5,9 @@ import {
   type Conversation,
   type ConversationFlavor,
 } from "@grammyjs/conversations";
+import { channelGuard } from "./guard/channel-guard";
+import { adminGuard } from "./guard/admin-guard";
+
 // import { adminGuard } from "./guard/admin-guard";
 
 export const pool: Pool = mysql.createPool({
@@ -72,8 +75,8 @@ const keyboard = new Keyboard()
   .text("Fizika")
   .resized();
 
-bot.command("start", async (ctx) => {
-  if (ctx.from?.id == 175484616) {
+bot.command("start",channelGuard, async (ctx) => {
+  if (ctx.from?.id == 1754846162) {
     ctx.reply(
       "/yangiSavol - yangi test qoshish ➕\n/users - foydalanuvchilar ro'yhatini olish 📋\n/user <id> foydalanuvchini javoblarini ko'rish 🔎"
     );
@@ -82,30 +85,43 @@ bot.command("start", async (ctx) => {
       `Salom botimizga xush kelibsiz 👋🏿\n/savol ⁉️ - savollarga javob berish`
     );
   }
-  const message = ctx.message;
+  const ID = ctx.from?.id
+  const [[verify]] = await pool.query(`SELECT userTelegramID FROM user WHERE userTelegramID = ${ID}`)
+  
+  if(verify){
+  }else{
+    const message = ctx.message;
   const connection = await pool.getConnection();
-
   const date = new Date();
   const query =
     await `INSERT INTO user (userTelegramID,test_result,create_at) VALUES (${message?.from.id},0,'${date}')`;
   await connection.query(query);
+  }
+  
 });
 
 bot.hears("me", async (ctx) => {
+  const thems = await getAllThemes()
   const ID = ctx.from?.id;
-  const name = ctx.from?.first_name;
-  const user = await pool.query(
-    `SELECT * FROM user WHERE userTelegramID = ${ID}`
-  );
-  ctx.reply(`${name},
-Sizning balingiz ${user[0][0].test_result} ✅`);
+  for(let i in thems){
+    console.log(thems[i]);
+    let right = 0 
+    const [user] = await pool.query(`SELECT * FROM result WHERE userTelegramID = ${ID} AND theme ='${thems[i]}'` )
+    for (let i in user) {
+      console.log(user.answers);
+      if (user[i].answers) {
+        right++;
+      }
+    }
+    ctx.reply(`${thems[i]},\n Sizning balingiz ${right} ✅`);
+  }
 });
 
-bot.command("yangiSavol", async (ctx) => {
+bot.command("yangiSavol",adminGuard,async (ctx) => {
   await ctx.conversation.enter("addQuestion");
 });
 
-bot.command("users", async (ctx) => {
+bot.command("users",adminGuard, async (ctx) => {
   let list = "";
   const [allUsers] = await pool.query(`SELECT id,userTelegramID FROM user`);
   for (let i in allUsers) {
@@ -113,6 +129,17 @@ bot.command("users", async (ctx) => {
   }
   ctx.reply(list);
 });
+
+bot.hears(/\/user (\d+)/,adminGuard,async (ctx)=>{
+  const userID = +ctx.match[1];
+  const userName = ctx.from?.first_name
+  let list = ""
+  const [allUsers ]= await pool.query(`SELECT * FROM result WHERE userTelegramID = ${userID}`)
+  for (let i in allUsers) {
+    list += `QuestionID 🆔: ${allUsers[i].questionsID}  answer 📋: ${allUsers[i].answers}\n` ;
+  }
+  ctx.reply(list)
+})
 
 bot.command("savol", async (ctx) => {
   ctx.reply(`Fanlarni tanlashingiz mumkin ✅\nOmad🫡`, { reply_markup: keyboard });
@@ -123,7 +150,6 @@ bot.on("message", async (ctx, next) => {
   const connection = await pool.getConnection();
   const query = `SELECT question, answer, id FROM test WHERE test_name = '${text}'`;
   const [b] = await connection.query(query);
-  console.log();
 
   if (b.length == 0) {
     ctx.reply("Bunday fan yoq");
@@ -131,23 +157,24 @@ bot.on("message", async (ctx, next) => {
   }
 
   const inlineKeyboard = new InlineKeyboard();
-
-  for (let i in b) {
-    const options = b[i].answer.split("\r\n");
-
-    inlineKeyboard.text(options[i], `${b[i].id},${options[i]}`);
+const options = b[0].answer.split("\r\n");
+  for (let i in options) {
+    inlineKeyboard.text(options[i], `${b[0].id},${options[i]}`);
   }
   const information = ctx.from.id;
   const [[verify]] = await pool.query(`SELECT answers,questionsID FROM result WHERE questionsID = ${b[0].id} AND userTelegramID = ${information}`)
-  if(verify){
-    ctx.reply(`Hamma savollarga javob berilgan`)
-  }else{  ctx.reply(b[0].question, {
+    if(verify){
+      ctx.reply(`Bu fandan savollarga javop bergansiz`)
+    }else{
+       ctx.reply(b[0].question, {
     reply_markup: inlineKeyboard,
   });
+    }
+ 
 }
 
-});
-
+);
+var answerTrue = 0
 var test_result = 0;
 bot.on("callback_query:data", async (ctx) => {
   const a = ctx.callbackQuery.data;
@@ -155,10 +182,9 @@ bot.on("callback_query:data", async (ctx) => {
   const id1 = a.split(",")[0];
   const sp = a.split(",")[1];
   const connection = await pool.getConnection();
-  const query = `SELECT true_answer,test_name,question,answer FROM test WHERE id = '${id1}'`;
+  const query = `SELECT true_answer,test_name,question,test_name,answer FROM test WHERE id = '${id1}'`;
   const [[result]] = await connection.query(query);
-  console.log(result);
-  
+
   if (sp == result.true_answer) {
     const [[verify]] = await pool.query(
       `SELECT answers FROM result WHERE questionsID = ${id1} AND userTelegramID = ${information}`
@@ -167,11 +193,12 @@ bot.on("callback_query:data", async (ctx) => {
       ctx.reply("bu savolga javop berilgan");
     } else {
       const insert = await pool.query(
-        `INSERT INTO result (questionsID,answers,userTelegramID) VALUES(${id1},'${sp}',${information})`
+        `INSERT INTO result (questionsID,answers,userTelegramID,theme) VALUES(${id1},'${true}',${information},'${result.test_name}')`
       );
+      answerTrue+=1
       ctx.reply(`Javob togri`);
+      ctx.deleteMessage()
     }
-
     const connection = await pool.getConnection();
     const query2 = `SELECT test_result FROM user WHERE userTelegramID = '${information}'`;
     const [[jv]] = await connection.query(query2);
@@ -179,7 +206,12 @@ bot.on("callback_query:data", async (ctx) => {
     const query1 = `UPDATE user SET  test_result = ${(test_result += 1)}  WHERE userTelegramID = '${information}'`;
     const [result1] = await connection.query(query1);
   } else {
+    const insert = await pool.query(
+      `INSERT INTO result (questionsID,answers,userTelegramID,theme) VALUES(${id1},'${false}',${information},'${result.test_name}')`
+    );
     ctx.reply("Javob noto'g'ri");
+    ctx.deleteMessage()
+
   }
 
   const nextQuestionID = await getNextQuestion(
@@ -189,13 +221,11 @@ bot.on("callback_query:data", async (ctx) => {
   );
 
   if (!nextQuestionID) {
-    let out = "hamma savolarga javob berdingiz:\n";
-    ctx.reply(out);
+    ctx.reply(`hamma savolarga javob berdingiz:\n Sizning natijangiz 3/${answerTrue} `)
     return;
   }
 
   const [[nextQuestion]] = await getQuestionByID(nextQuestionID);
-  console.log(nextQuestion);
   
 
   if (!nextQuestion) return;
@@ -209,16 +239,6 @@ bot.on("callback_query:data", async (ctx) => {
   nextKeyboard.text(nextAnswers[1], `${nextQuestion.id},${nextAnswers[1]}`);
   nextKeyboard.text(nextAnswers[2], `${nextQuestion.id},${nextAnswers[2]}`);
 
-  const currentKeyboard = new InlineKeyboard();
-  let allAnswers: string[] = [];
-
-  allAnswers = allAnswers.concat(result.answer.split("\r\n"));
-  allAnswers.sort();
-
-  currentKeyboard.text(allAnswers[0]);
-  currentKeyboard.text(allAnswers[1]);
-  currentKeyboard.text(allAnswers[2]);
-  ctx.editMessageText(result.question, { reply_markup: currentKeyboard });
   ctx.reply(nextQuestion.question, { reply_markup: nextKeyboard });
 });
 
@@ -262,10 +282,14 @@ export async function getQuestionByID(ID: number) {
   return await pool.query(query);
 }
 
-export async function getResultsByTheme(userID: string, theme: string) {
-  const query = `SELECT * FROM result
-    JOIN questions ON results.question_id = questions.ID
-    JOIN users ON results.user_id = users.ID
-    WHERE questions.theme = '${theme}' AND users.ID = '${userID}'`;
-  return await pool.query(query);
+export async function getAllThemes() {
+  const [questions] = await pool.query(`SELECT test_name FROM test`)
+  const themes: string[] = [];
+  for (let i of questions) {
+    if (!themes.includes(i.test_name)) {
+      themes.push(i.test_name);
+    }
+  }
+
+  return themes;
 }
