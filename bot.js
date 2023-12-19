@@ -68,7 +68,7 @@ const keyboard = new grammy_1.Keyboard()
     .resized();
 bot.command("start", channel_guard_1.channelGuard, (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
-    if (((_a = ctx.from) === null || _a === void 0 ? void 0 : _a.id) == 1754846162) {
+    if (((_a = ctx.from) === null || _a === void 0 ? void 0 : _a.id) == 175484616) {
         ctx.reply("/yangiSavol - yangi test qoshish ➕\n/users - foydalanuvchilar ro'yhatini olish 📋\n/user <id> foydalanuvchini javoblarini ko'rish 🔎");
     }
     else {
@@ -91,12 +91,11 @@ bot.hears("me", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
     const thems = yield getAllThemes();
     const ID = (_c = ctx.from) === null || _c === void 0 ? void 0 : _c.id;
     for (let i in thems) {
-        console.log(thems[i]);
         let right = 0;
         const [user] = yield exports.pool.query(`SELECT * FROM result WHERE userTelegramID = ${ID} AND theme ='${thems[i]}'`);
         for (let i in user) {
-            console.log(user.answers);
-            if (user[i].answers) {
+            console.log(user[i].answers);
+            if (user[i].answers == "true") {
                 right++;
             }
         }
@@ -126,7 +125,7 @@ bot.hears(/\/user (\d+)/, admin_guard_1.adminGuard, (ctx) => __awaiter(void 0, v
     ctx.reply(list);
 }));
 bot.command("savol", (ctx) => __awaiter(void 0, void 0, void 0, function* () {
-    ctx.reply(`Fanlarni tanlashingiz mumkin ✅\nOmad🫡`, { reply_markup: keyboard });
+    ctx.reply(`Fanlarni tanlashingiz mumkin ✅\nTest🫡`, { reply_markup: keyboard });
 }));
 bot.on("message", (ctx, next) => __awaiter(void 0, void 0, void 0, function* () {
     const text = ctx.message.text;
@@ -188,7 +187,7 @@ bot.on("callback_query:data", (ctx) => __awaiter(void 0, void 0, void 0, functio
     }
     const nextQuestionID = yield getNextQuestion(information, result.test_name, +id1);
     if (!nextQuestionID) {
-        ctx.reply(`hamma savolarga javob berdingiz:\n Sizning natijangiz 3/${answerTrue} `);
+        ctx.reply(`hamma savolarga javob berdingiz:\nSizning natijangiz 3/${answerTrue} `);
         return;
     }
     const [[nextQuestion]] = yield getQuestionByID(nextQuestionID);

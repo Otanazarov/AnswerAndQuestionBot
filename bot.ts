@@ -76,7 +76,7 @@ const keyboard = new Keyboard()
   .resized();
 
 bot.command("start",channelGuard, async (ctx) => {
-  if (ctx.from?.id == 1754846162) {
+  if (ctx.from?.id == 175484616) {
     ctx.reply(
       "/yangiSavol - yangi test qoshish ➕\n/users - foydalanuvchilar ro'yhatini olish 📋\n/user <id> foydalanuvchini javoblarini ko'rish 🔎"
     );
@@ -104,12 +104,11 @@ bot.hears("me", async (ctx) => {
   const thems = await getAllThemes()
   const ID = ctx.from?.id;
   for(let i in thems){
-    console.log(thems[i]);
     let right = 0 
     const [user] = await pool.query(`SELECT * FROM result WHERE userTelegramID = ${ID} AND theme ='${thems[i]}'` )
     for (let i in user) {
-      console.log(user.answers);
-      if (user[i].answers) {
+      console.log(user[i].answers);
+      if (user[i].answers=="true") {
         right++;
       }
     }
@@ -142,7 +141,7 @@ bot.hears(/\/user (\d+)/,adminGuard,async (ctx)=>{
 })
 
 bot.command("savol", async (ctx) => {
-  ctx.reply(`Fanlarni tanlashingiz mumkin ✅\nOmad🫡`, { reply_markup: keyboard });
+  ctx.reply(`Fanlarni tanlashingiz mumkin ✅\nTest🫡`, { reply_markup: keyboard });
 });
 
 bot.on("message", async (ctx, next) => {
@@ -221,7 +220,7 @@ bot.on("callback_query:data", async (ctx) => {
   );
 
   if (!nextQuestionID) {
-    ctx.reply(`hamma savolarga javob berdingiz:\n Sizning natijangiz 3/${answerTrue} `)
+    ctx.reply(`hamma savolarga javob berdingiz:\nSizning natijangiz 3/${answerTrue} `)
     return;
   }
 
